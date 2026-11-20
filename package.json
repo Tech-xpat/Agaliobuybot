@@ -1,0 +1,49 @@
+{
+  "name": "agalio-buybot",
+  "version": "1.0.0",
+  "description": "AGALIO NETWORK Telegram launch announcement BuyBot for BNB Smart Chain",
+  "private": true,
+  "license": "MIT",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src tests scripts",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:dev": "prisma migrate dev",
+    "setup": "tsx scripts/setup.ts",
+    "seed": "tsx scripts/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "6.19.0",
+    "@prisma/client": "6.19.0",
+    "bullmq": "5.34.8",
+    "dotenv": "16.4.7",
+    "ethers": "6.13.5",
+    "grammy": "1.34.0",
+    "ioredis": "5.4.2",
+    "pg": "8.13.1",
+    "pino": "9.6.0",
+    "prisma": "6.19.0",
+    "zod": "3.24.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.17.0",
+    "@types/node": "22.10.5",
+    "@types/pg": "8.11.10",
+    "eslint": "9.17.0",
+    "tsx": "4.19.2",
+    "typescript": "5.7.3",
+    "typescript-eslint": "8.19.1",
+    "vitest": "2.1.8"
+  }
+}

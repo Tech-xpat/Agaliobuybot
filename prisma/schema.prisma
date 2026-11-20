@@ -1,0 +1,184 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Token {
+  id            String   @id @default(cuid())
+  slug          String   @unique @default("agalio")
+  name          String
+  symbol        String
+  decimals      Int?
+  totalSupply   String?
+  description   String   @default("")
+  logoPath      String?
+  logoFileId    String?
+  launchStatus  LaunchStatus @default(PRE_LAUNCH)
+  chainId       Int      @default(56)
+  buyUrl        String?
+  chartUrl      String?
+  communityUrl  String?
+  websiteUrl    String?
+  twitterUrl    String?
+  whitepaperUrl String?
+  tokenomicsUrl String?
+  securityUrl   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  contracts     ContractAddress[]
+  announcements Announcement[]
+  snapshots     MarketDataSnapshot[]
+  buttons       ButtonConfiguration[]
+}
+
+model ContractAddress {
+  id          String   @id @default(cuid())
+  tokenId     String
+  address     String   // lowercase, for comparison
+  checksum    String   // EIP-55 display form
+  chainId     Int      @default(56)
+  isOfficial  Boolean  @default(false)
+  setByUserId BigInt?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, address])
+  @@index([address])
+}
+
+model BotConfiguration {
+  id                   Int      @id @default(1)
+  announcementEnabled  Boolean  @default(true)
+  paused               Boolean  @default(false)
+  cooldownSeconds      Int      @default(60)
+  announcementTemplate String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model TelegramGroup {
+  id        String   @id @default(cuid())
+  chatId    BigInt   @unique
+  title     String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  announcements Announcement[]
+  detected      DetectedMessage[]
+}
+
+model Administrator {
+  id         String   @id @default(cuid())
+  telegramId BigInt   @unique
+  username   String?
+  addedBy    BigInt?
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  tokenId     String
+  groupId     String
+  triggerMsgId Int?
+  telegramMessageId Int?
+  contract    String
+  kind        String   @default("AUTO") // AUTO | TEST
+  createdAt   DateTime @default(now())
+
+  token Token         @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+  group TelegramGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+model DetectedMessage {
+  id         String   @id @default(cuid())
+  groupId    String
+  messageId  Int
+  userId     BigInt?
+  contract   String
+  matched    Boolean
+  isForward  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  group TelegramGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, messageId, contract])
+  @@index([createdAt])
+}
+
+model ButtonConfiguration {
+  id      String  @id @default(cuid())
+  tokenId String
+  key     String
+  enabled Boolean @default(true)
+  label   String?
+  position Int    @default(0)
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenId, key])
+}
+
+model MarketDataSnapshot {
+  id           String   @id @default(cuid())
+  tokenId      String
+  provider     String
+  priceUsd     String?
+  liquidityUsd String?
+  marketCapUsd String?
+  fdvUsd       String?
+  volume24hUsd String?
+  priceChange24h String?
+  pairAddress  String?
+  dexName      String?
+  chartUrl     String?
+  pairCreatedAt DateTime?
+  fetchedAt    DateTime @default(now())
+
+  token Token @relation(fields: [tokenId], references: [id], onDelete: Cascade)
+
+  @@index([tokenId, fetchedAt])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   BigInt?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+model BotEvent {
+  id        String   @id @default(cuid())
+  level     String
+  type      String
+  message   String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+}
+
+enum LaunchStatus {
+  PRE_LAUNCH
+  CONTRACT_DEPLOYED
+  TRADING_NOT_LIVE
+  TRADING_LIVE
+  PAUSED
+  ANNOUNCEMENT_ONLY
+}
