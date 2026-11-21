@@ -8,7 +8,7 @@ export function startText(): string {
     '<b>AGALIO BUYBOT</b>',
     'I post the official AGALIO token information when the official contract address is shared in AGALIO NETWORK.',
     '',
-    'Just type <b>CA</b> in the group (or here) and I will reply with the contract address. Ask for anything else on its own: <b>price</b>, <b>mc</b>, <b>liquidity</b>, <b>volume</b>, <b>holders</b>, <b>supply</b>, <b>website</b>, <b>twitter</b>… No commands needed.',
+    'Just type <b>CA</b> in the group (or here) and I will reply with the contract address. Ask for anything else on its own: <b>price</b>, <b>mc</b>, <b>liquidity</b>, <b>volume</b>, <b>holders</b>, <b>supply</b>, <b>website</b>, <b>twitter</b>, <b>tutorial</b>… No commands needed.',
     '',
     'I also post a card in the group whenever someone buys AGALIO.',
     '',
@@ -20,10 +20,11 @@ export function helpText(isAdmin: boolean): string {
   const lines = [
     '<b>Commands</b>',
     'Type <b>CA</b> (or "wen ca", "contract address") to get the contract address. Ask for one thing at a time and I answer just that:',
-    '<b>price</b> · <b>mc</b> · <b>liquidity</b> · <b>volume</b> · <b>holders</b> · <b>supply</b> · <b>website</b> · <b>twitter</b> · <b>chart</b> · <b>tokenomics</b>…',
+    '<b>price</b> · <b>mc</b> · <b>liquidity</b> · <b>volume</b> · <b>holders</b> · <b>supply</b> · <b>website</b> · <b>twitter</b> · <b>tutorial</b> · <b>chart</b> · <b>tokenomics</b>…',
     'Commands also work:',
     '/token – show the full AGALIO token card',
     '/contract – official contract address (tap to copy)',
+    '/tutorial – watch the video tutorials',
     '/help – this message',
   ];
   if (isAdmin) {
@@ -42,7 +43,7 @@ export function helpText(isAdmin: boolean): string {
       '/setcharturl &lt;https://…|clear&gt;',
       '/setcommunity &lt;https://…|clear&gt;',
       '/setwebsite &lt;https://…|clear&gt;',
-      '/setlink &lt;twitter|whitepaper|tokenomics|security&gt; &lt;url|clear&gt;',
+      '/setlink &lt;twitter|whitepaper|tokenomics|security|tutorial&gt; &lt;url|clear&gt;',
       '/setdescription &lt;text&gt;',
       '/setlaunchstatus &lt;status&gt;',
       '/setlogo (reply to a photo, or send a URL, or "clear")',

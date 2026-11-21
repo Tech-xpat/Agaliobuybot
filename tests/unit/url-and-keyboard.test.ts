@@ -31,6 +31,15 @@ const flat = (rows: ReturnType<typeof buildButtonSpecs>) => rows.flat();
 const keys = (rows: ReturnType<typeof buildButtonSpecs>) => flat(rows).map((b) => b.key);
 
 describe('inline keyboard', () => {
+  it('shows the tutorial button only when the admin set a link and has not switched it off', () => {
+    const withLink = (extra = {}) => baseContext({ token: { ...baseContext().token, tutorialUrl: 'https://youtube.com/playlist?list=abc' }, ...extra });
+    expect(keys(buildButtonSpecs(baseContext()))).not.toContain('tutorial');
+    expect(keys(buildButtonSpecs(withLink()))).toContain('tutorial');
+    expect(keys(buildButtonSpecs(withLink({ buttons: [{ key: 'tutorial', enabled: false }] })))).not.toContain('tutorial');
+    const tutorial = flat(buildButtonSpecs(withLink())).find((b) => b.key === 'tutorial');
+    expect(tutorial).toMatchObject({ kind: 'url', url: 'https://youtube.com/playlist?list=abc' });
+  });
+
   it('hides BUY when no buy URL is configured, even if trading is live', () => {
     const ctx = baseContext({ token: { ...baseContext().token, launchStatus: 'TRADING_LIVE', buyUrl: null } });
     expect(keys(buildButtonSpecs(ctx))).not.toContain('buy');

@@ -15,6 +15,7 @@ export interface TokenView {
   whitepaperUrl: string | null;
   tokenomicsUrl: string | null;
   securityUrl: string | null;
+  tutorialUrl: string | null;
 }
 
 export interface ButtonSetting {

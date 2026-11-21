@@ -62,6 +62,7 @@ export class AnnouncementService {
         whitepaperUrl: token.whitepaperUrl,
         tokenomicsUrl: token.tokenomicsUrl,
         securityUrl: token.securityUrl,
+        tutorialUrl: token.tutorialUrl,
       },
       contract: { checksum: contract.checksum, lower: contract.address },
       onchain,

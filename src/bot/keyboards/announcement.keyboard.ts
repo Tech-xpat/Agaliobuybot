@@ -33,6 +33,7 @@ export function buildButtonSpecs(ctx: AnnouncementContext): ButtonSpec[][] {
     [community, bscscan],
   ];
   const secondary: (ButtonSpec | null)[] = [
+    url('tutorial', token.tutorialUrl),
     url('website', token.websiteUrl),
     url('twitter', token.twitterUrl),
     url('telegram', ctx.telegramGroupUrl),

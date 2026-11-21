@@ -25,6 +25,7 @@ const LINKS: Record<string, { field: UrlField; label: string; hint: string }> = 
   whitepaper: { field: 'whitepaperUrl', label: '📄 Whitepaper', hint: '' },
   tokenomics: { field: 'tokenomicsUrl', label: '🥧 Tokenomics', hint: '' },
   security: { field: 'securityUrl', label: '🛡 Security info', hint: '' },
+  tutorial: { field: 'tutorialUrl', label: '🎓 Video tutorials', hint: 'A page or playlist where members can watch video tutorials, e.g. a YouTube playlist link.' },
 };
 
 type AwaitState =
