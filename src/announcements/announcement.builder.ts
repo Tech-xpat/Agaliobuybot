@@ -120,3 +120,8 @@ export function buildDetailsHtml(ctx: AnnouncementContext): string {
 export function buildCopyContractHtml(checksum: string): string {
   return `<b>Official AGALIO contract (BSC)</b>\nTap the address below to copy it:\n\n<code>${escapeHtml(checksum)}</code>\n\n<i>Always compare it with the pinned/official sources.</i>`;
 }
+
+/** The reply to a plain "ca" request: just the contract address (tap it to copy), nothing else. */
+export function buildContractOnlyHtml(checksum: string): string {
+  return `<code>${escapeHtml(checksum)}</code>`;
+}

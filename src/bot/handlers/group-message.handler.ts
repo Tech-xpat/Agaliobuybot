@@ -1,12 +1,15 @@
 import { GrammyError, HttpError, type Bot, type Context } from 'grammy';
+import { buildContractOnlyHtml } from '../../announcements/announcement.builder';
 import { buildLinkReply } from '../../announcements/link-reply';
 import { isInfoRequest } from '../../detection/keyword-detector';
 import { detectLinkRequest, type LinkTopic } from '../../detection/link-keyword-detector';
+import { detectStatRequest, type StatTopic } from '../../detection/stat-keyword-detector';
 import { processMessage } from '../../detection/message-processor';
 import { errMessage, telegramRetryAfter } from '../../utils/errors';
 import { startsWithCommand } from '../filters';
 import { toInlineKeyboard } from '../keyboards/announcement.keyboard';
 import type { BotDeps } from '../context';
+import { buildStatReplyFor } from './stat-request';
 
 export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
   bot.on(['message:text', 'message:caption', 'edited_message:text', 'edited_message:caption'], async (ctx, next) => {
@@ -18,7 +21,7 @@ export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
     // Anonymous group admins appear as a bot-flagged sender with sender_chat set: allow those.
     const fromBot = ctx.from?.is_bot === true && !msg.sender_chat;
 
-    // Plain "ca" / "wen ca" / "contract address" requests get the token card (no slash command needed).
+    // Plain "ca" / "wen ca" / "contract address" requests get the contract address only (no slash command needed).
     if (isInfoRequest(text)) {
       await answerInfoRequest(ctx, deps, msg.message_id);
       return;
@@ -28,6 +31,13 @@ export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
     const linkTopics = detectLinkRequest(text);
     if (linkTopics.length > 0) {
       await answerLinkRequest(ctx, deps, msg.message_id, linkTopics);
+      return;
+    }
+
+    // Plain "price" / "mc" / "liquidity" / "holders" / "supply" requests get just that number.
+    const statTopics = detectStatRequest(text);
+    if (statTopics.length > 0) {
+      await answerStatRequest(ctx, deps, msg.message_id, statTopics);
       return;
     }
 
@@ -98,10 +108,43 @@ async function answerInfoRequest(ctx: Context, deps: BotDeps, messageId: number)
   if (!(await deps.cache.setNx(`kw:chat:${chat.id}`, 30))) return;
 
   try {
-    await deps.announcements.publish(ctx.api, { chatId: chat.id, chatIdBig: BigInt(chat.id), replyTo: messageId, kind: 'AUTO' });
+    // Just the address (tap to copy). Anything else (price, mc, links …) is answered when asked for individually.
+    await ctx.reply(buildContractOnlyHtml(official.contract.checksum), {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+      reply_parameters: { message_id: messageId, allow_sending_without_reply: true },
+    });
   } catch (err) {
     deps.log.error({ err: errMessage(err) }, 'Failed to answer a contract request');
     await deps.repos.audit.event('error', 'info-request.failed', errMessage(err));
+  }
+}
+
+/** Replies with only the stat(s) someone asked for ("price", "mc", "liquidity and volume"). */
+async function answerStatRequest(ctx: Context, deps: BotDeps, messageId: number, topics: StatTopic[]): Promise<void> {
+  const chat = ctx.chat!;
+  if (String(chat.id) !== deps.env.TELEGRAM_GROUP_ID) return;
+  if (ctx.from?.is_bot === true && !ctx.msg?.sender_chat) return;
+  const cfg = await deps.repos.config.get();
+  if (!cfg.announcementEnabled || cfg.paused) return;
+
+  // Anti-spam: once per message, once per user per 20s, and the same request once per chat per 30s.
+  const userId = ctx.from?.id ?? 0;
+  if (!(await deps.cache.setNx(`kws:msg:${chat.id}:${messageId}`, 86_400))) return;
+  if (!(await deps.cache.setNx(`kws:user:${chat.id}:${userId}`, 20))) return;
+  if (!(await deps.cache.setNx(`kws:topics:${chat.id}:${topics.join('+')}`, 30))) return;
+
+  try {
+    const html = await buildStatReplyFor(deps, topics);
+    if (!html) return;
+    await ctx.reply(html, {
+      parse_mode: 'HTML',
+      link_preview_options: { is_disabled: true },
+      reply_parameters: { message_id: messageId, allow_sending_without_reply: true },
+    });
+  } catch (err) {
+    deps.log.error({ err: errMessage(err), topics }, 'Failed to answer a stat request');
+    await deps.repos.audit.event('error', 'stat-request.failed', errMessage(err));
   }
 }
 

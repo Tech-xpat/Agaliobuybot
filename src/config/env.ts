@@ -57,6 +57,12 @@ const schema = z
     ANNOUNCEMENT_COOLDOWN_SECONDS: int(60, 0, 86400),
     USER_RATE_LIMIT_PER_MINUTE: int(20, 1, 600),
 
+    // Buy alerts: a card is posted in the group whenever someone buys the official token.
+    BUY_ALERT_ENABLED: z.preprocess(empty, bool.default('true')),
+    BUY_ALERT_MIN_USD: z.preprocess(empty, z.coerce.number().min(0).max(1_000_000).default(1)),
+    BUY_ALERT_POLL_SECONDS: int(10, 5, 300),
+    BUY_ALERT_MAX_PER_SCAN: int(5, 1, 25),
+
     LOG_LEVEL: z.preprocess(empty, z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info')),
   })
   .superRefine((v, ctx) => {

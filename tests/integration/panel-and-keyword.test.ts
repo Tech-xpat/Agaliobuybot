@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-import { ADMIN_ID, MEMBER_ID, OFFICIAL, OTHER } from '../fixtures';
+import { ADMIN_ID, MEMBER_ID, OFFICIAL, OTHER, marketData } from '../fixtures';
 import { TEST_DB, createHarness, type Harness } from './harness';
 
 const GROUP = '-1001234567890';
@@ -15,11 +15,12 @@ describe.skipIf(!TEST_DB)('"ca" keyword in the group (no slash commands)', () =>
   });
   afterAll(async () => h?.close());
 
-  it('posts the token card when a member just types "ca"', async () => {
+  it('replies with ONLY the contract address when a member just types "ca"', async () => {
     await h.groupMessage('ca', 10);
     const [call] = toGroup(h);
-    expect(String(call?.payload.text)).toContain(OFFICIAL);
-    expect(buttons(call).map((b) => b.text)).toContain('📋 COPY CONTRACT');
+    expect(call?.method).toBe('sendMessage');
+    expect(String(call?.payload.text)).toBe(`<code>${OFFICIAL}</code>`);
+    expect(buttons(call)).toHaveLength(0);
     expect((call?.payload.reply_parameters as { message_id: number }).message_id).toBe(10);
   });
 
@@ -59,6 +60,49 @@ describe.skipIf(!TEST_DB)('"ca" keyword in the group (no slash commands)', () =>
   it('answers "ca" in a private chat with the bot too', async () => {
     await h.privateText('ca', MEMBER_ID);
     expect(String(h.last('sendMessage')?.payload.text)).toContain(OFFICIAL);
+  });
+});
+
+describe.skipIf(!TEST_DB)('individual stat questions in the group', () => {
+  let h: Harness;
+  beforeEach(async () => {
+    if (h) await h.close();
+    h = await createHarness();
+    h.setMarket(marketData);
+  });
+  afterAll(async () => h?.close());
+
+  it('"price" answers with only the price', async () => {
+    await h.groupMessage('price', 50);
+    const [call] = toGroup(h);
+    const text = String(call?.payload.text);
+    expect(text).toContain('$0.000123');
+    expect(text).not.toContain('Market cap');
+    expect(text).not.toContain(OFFICIAL);
+    expect((call?.payload.reply_parameters as { message_id: number }).message_id).toBe(50);
+  });
+
+  it('"mc" and "liquidity" each answer individually', async () => {
+    await h.groupMessage('mc', 51, MEMBER_ID);
+    await h.groupMessage('liquidity', 52, 3003);
+    const texts = toGroup(h).map((c) => String(c.payload.text));
+    expect(texts[0]).toContain('Market cap');
+    expect(texts[0]).not.toContain('Liquidity');
+    expect(texts[1]).toContain('Liquidity');
+    expect(texts[1]).not.toContain('Market cap');
+  });
+
+  it('is rate limited per user and ignores ordinary sentences', async () => {
+    await h.groupMessage('price', 53, MEMBER_ID);
+    await h.groupMessage('mc', 54, MEMBER_ID);
+    await h.groupMessage('the price is dumping', 55, 3003);
+    expect(toGroup(h)).toHaveLength(1);
+  });
+
+  it('is silent while paused', async () => {
+    await h.panelPress('a:pause');
+    await h.groupMessage('price', 56);
+    expect(toGroup(h)).toHaveLength(0);
   });
 });
 

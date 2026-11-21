@@ -12,6 +12,10 @@ export interface MarketData {
   chartUrl: string | null;
   holderCount: number | null;
   fetchedAt: number;
+  /** Quote token (e.g. WBNB) of the best pair, lowercase. Lets buy alerts price what was actually paid. */
+  quoteTokenAddress?: string | null;
+  /** USD value of one unit of that quote token (priceUsd / priceNative). */
+  quoteUsd?: number | null;
 }
 
 /**

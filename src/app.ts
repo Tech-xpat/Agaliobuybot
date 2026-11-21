@@ -6,6 +6,7 @@ import { AdminGuard } from './admin/admin.guard';
 import { AdminService } from './admin/admin.service';
 import { AnnouncementService } from './announcements/announcement.service';
 import { BscProvider } from './blockchain/bsc.provider';
+import { BuyAlertService } from './buy-alerts/buy-alert.service';
 import { ContractService } from './blockchain/contract.service';
 import { TokenService } from './blockchain/token.service';
 import { ALLOWED_UPDATES, createBot } from './bot/bot';
@@ -77,6 +78,18 @@ export async function createApp(env: Env): Promise<App> {
 
   // --- background jobs ---------------------------------------------------------
   const ref: { bot?: Bot } = {};
+  const buyAlerts = new BuyAlertService({
+    env,
+    log,
+    repos,
+    cache,
+    bsc,
+    contracts,
+    market,
+    tokenSvc,
+    announcements,
+    getApi: () => ref.bot?.api ?? null,
+  });
   const handlers: JobHandlers = {
     async refreshMarket() {
       const official = await repos.tokens.getOfficial();
@@ -92,13 +105,18 @@ export async function createApp(env: Env): Promise<App> {
       const n = await repos.market.prune(14);
       log.info({ deleted: n }, 'Pruned old market snapshots');
     },
+    ...(env.BUY_ALERT_ENABLED ? { scanBuys: () => buyAlerts.scan() } : {}),
     async retryAnnouncement(data) {
       if (!ref.bot) throw new Error('Bot not ready');
       const res = await announcements.publish(ref.bot.api, { chatId: data.chatId, chatIdBig: BigInt(data.chatId), replyTo: data.replyTo, kind: data.kind });
       log.info({ ok: !!res }, 'Announcement retry processed');
     },
   };
-  const jobs = new BackgroundJobs({ redisUrl: env.REDIS_URL, refreshSeconds: env.MARKET_REFRESH_SECONDS }, handlers, log);
+  const jobs = new BackgroundJobs(
+    { redisUrl: env.REDIS_URL, refreshSeconds: env.MARKET_REFRESH_SECONDS, buyScanSeconds: env.BUY_ALERT_ENABLED ? env.BUY_ALERT_POLL_SECONDS : undefined },
+    handlers,
+    log,
+  );
 
   const deps: BotDeps = {
     env,

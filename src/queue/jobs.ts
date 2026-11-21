@@ -5,6 +5,7 @@ export const JOB = {
   RPC_HEALTH: 'rpc-health',
   PRUNE: 'prune',
   ANNOUNCE_RETRY: 'announce-retry',
+  BUY_SCAN: 'buy-scan',
 } as const;
 
 export interface AnnounceRetryData {
@@ -18,4 +19,6 @@ export interface JobHandlers {
   checkRpc(): Promise<void>;
   prune(): Promise<void>;
   retryAnnouncement(data: AnnounceRetryData): Promise<void>;
+  /** Scans new blocks for buys of the official token and posts alerts. Optional: only wired when buy alerts exist. */
+  scanBuys?(): Promise<void>;
 }
