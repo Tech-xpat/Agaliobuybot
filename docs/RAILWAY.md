@@ -36,6 +36,7 @@ NODE_ENV=production
 Optional: `AGALIO_TOKEN_NAME`, `AGALIO_TOKEN_SYMBOL`, `ANNOUNCEMENT_COOLDOWN_SECONDS`. Leave `AGALIO_CONTRACT_ADDRESS` empty until the contract exists; set it later with `/setcontract`.
 
 ## 5. Deploy
+The container applies database migrations itself on every start (`prisma migrate deploy`), so no extra Railway setting is needed.
 Click **Deploy** (or push a commit). Open **Deployments → View logs**. Success looks like:
 - pre-deploy: Prisma applies the migration
 - `HTTP server listening`, `Bot identity verified`, `Long polling started`
