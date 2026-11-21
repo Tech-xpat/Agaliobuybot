@@ -13,6 +13,18 @@ export interface MarketServiceOptions {
 }
 
 /**
+ * The cache stores JSON, which turns Date objects into ISO strings. Restore the
+ * Date so consumers always get the type MarketData promises.
+ */
+function reviveEntry(entry: CachedEntry | null): CachedEntry | null {
+  if (!entry || !entry.data) return entry;
+  const raw = entry.data.pairCreatedAt as unknown;
+  if (raw === null || raw === undefined || raw instanceof Date) return entry;
+  const d = new Date(raw as string | number);
+  return { ...entry, data: { ...entry.data, pairCreatedAt: Number.isNaN(d.getTime()) ? null : d } };
+}
+
+/**
  * Provider-agnostic market data with caching. The announcement code only sees
  * MarketResult, so providers can be swapped or chained without touching it.
  */
@@ -31,7 +43,7 @@ export class MarketService {
 
   async get(address: string, opts: { force?: boolean } = {}): Promise<MarketResult> {
     if (!opts.force) {
-      const hit = await this.cache.getJson<CachedEntry>(this.fresh(address));
+      const hit = reviveEntry(await this.cache.getJson<CachedEntry>(this.fresh(address)));
       if (hit) return { ...hit, stale: false };
     }
 
@@ -59,7 +71,7 @@ export class MarketService {
       return { ...entry, stale: false };
     }
 
-    const stale = await this.cache.getJson<CachedEntry>(this.last(address));
+    const stale = reviveEntry(await this.cache.getJson<CachedEntry>(this.last(address)));
     if (stale && stale.status === 'ok') return { ...stale, stale: true };
     this.log.warn({ err: lastError }, 'No market data available');
     return { status: 'unavailable', data: null, stale: false, providerName: this.providers[0]!.name };
