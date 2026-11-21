@@ -44,6 +44,7 @@ export const BUTTON_KEYS = [
   'tokenomics',
   'whitepaper',
   'security',
+  'tutorial',
 ] as const;
 export type ButtonKey = (typeof BUTTON_KEYS)[number];
 
@@ -60,6 +61,7 @@ export const DEFAULT_BUTTON_LABELS: Record<ButtonKey, string> = {
   tokenomics: '🥧 Tokenomics',
   whitepaper: '📄 Whitepaper',
   security: '🛡 Security Info',
+  tutorial: '🎓 VIDEO TUTORIALS',
 };
 
 /** Token URL fields an admin can set, mapped to the button that uses them. */
@@ -72,6 +74,7 @@ export const URL_FIELDS = [
   'whitepaperUrl',
   'tokenomicsUrl',
   'securityUrl',
+  'tutorialUrl',
 ] as const;
 export type UrlField = (typeof URL_FIELDS)[number];
 
@@ -81,6 +84,9 @@ export const EXTRA_LINK_FIELDS: Record<string, UrlField> = {
   whitepaper: 'whitepaperUrl',
   tokenomics: 'tokenomicsUrl',
   security: 'securityUrl',
+  tutorial: 'tutorialUrl',
+  tutorials: 'tutorialUrl',
+  video: 'tutorialUrl',
 };
 
 // Optional on-chain pair discovery (informational only; never used to build the Buy URL).

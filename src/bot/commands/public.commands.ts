@@ -1,4 +1,6 @@
-import type { Bot } from 'grammy';
+import { InlineKeyboard, type Bot } from 'grammy';
+import { DEFAULT_BUTTON_LABELS } from '../../config/constants';
+import { safeUrl } from '../../services/url.service';
 import { buildCopyContractHtml } from '../../announcements/announcement.builder';
 import { helpText, startText } from '../messages/texts';
 import { isPrivateChat, userIdOf } from '../filters';
@@ -32,6 +34,22 @@ export function registerPublicCommands(bot: Bot, deps: BotDeps, panel: AdminPane
       return;
     }
     await ctx.reply(buildCopyContractHtml(official.contract.checksum), { parse_mode: 'HTML' });
+  });
+
+  bot.command('tutorial', async (ctx) => {
+    if (!isPrivateChat(ctx) && !(await quiet(ctx, 'tutorial', 30))) return;
+    const official = await deps.repos.tokens.getOfficial();
+    const url = safeUrl(official?.token.tutorialUrl);
+    const enabled = official ? ((await deps.repos.tokens.getButtonSettings(official.token.id)).find((b) => b.key === 'tutorial')?.enabled ?? true) : false;
+    if (!url || !enabled) {
+      await ctx.reply('Video tutorials are not available yet.');
+      return;
+    }
+    await ctx.reply('🎓 <b>Tap the button to watch the video tutorials</b> 👇', {
+      parse_mode: 'HTML',
+      reply_markup: new InlineKeyboard().url(DEFAULT_BUTTON_LABELS.tutorial, url),
+      link_preview_options: { is_disabled: true },
+    });
   });
 
   bot.command('token', async (ctx) => {

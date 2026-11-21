@@ -27,6 +27,10 @@ describe('link keyword detection', () => {
     ['community link', ['community']],
     ['how to buy', ['buy']],
     ['buy link', ['buy']],
+    ['tutorial', ['tutorial']],
+    ['tutorials?', ['tutorial']],
+    ['wen video tutorial', ['tutorial']],
+    ['video guide pls', ['tutorial']],
     ['website and twitter', ['website', 'twitter']],
     ['whitepaper & tokenomics?', ['whitepaper', 'tokenomics']],
     ['🌐 website 🌐', ['website']],
@@ -54,6 +58,8 @@ describe('link keyword detection', () => {
     'whitepaper was written by a chatgpt lol',
     'hello website',
     'chart is red today',
+    'this video is fake',
+    'the tutorial was too long',
     'community is growing so fast, amazing work team',
     'ca',
     'what is the price',
@@ -77,6 +83,7 @@ describe('link reply (tappable buttons)', () => {
       whitepaperUrl: null,
       tokenomicsUrl: 'https://agalio.example/tokenomics',
       securityUrl: null,
+      tutorialUrl: null,
     },
     buttons: [],
     contractChecksum: '0x1111111111111111111111111111111111111111',
@@ -112,6 +119,12 @@ describe('link reply (tappable buttons)', () => {
     const r = buildLinkReply({ ...base, topics: ['website', 'whitepaper'] })!;
     expect(urls(r)).toEqual(['https://agalio.example/']);
     expect(r.html).toContain('Whitepaper:</b> not available yet');
+  });
+
+  it('gives the tutorial link as a button, and says so when the admin has not set one', () => {
+    const set = buildLinkReply({ ...base, topics: ['tutorial'], token: { ...base.token, tutorialUrl: 'https://youtube.com/playlist?list=abc' } })!;
+    expect(set.rows).toEqual([[{ kind: 'url', key: 'tutorial', text: '🎓 VIDEO TUTORIALS', url: 'https://youtube.com/playlist?list=abc' }]]);
+    expect(buildLinkReply({ ...base, topics: ['tutorial'] })!.html).toBe('🎓 <b>Video tutorials:</b> not available yet.');
   });
 
   it('skips topics the admin switched off', () => {

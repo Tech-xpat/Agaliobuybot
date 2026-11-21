@@ -74,6 +74,7 @@ export function baseContext(over: Partial<AnnouncementContext> = {}): Announceme
       whitepaperUrl: null,
       tokenomicsUrl: null,
       securityUrl: null,
+      tutorialUrl: null,
     },
     contract: { checksum: OFFICIAL, lower: OFFICIAL.toLowerCase() },
     onchain,

@@ -15,6 +15,7 @@ export interface LinkReplyToken {
   whitepaperUrl: string | null;
   tokenomicsUrl: string | null;
   securityUrl: string | null;
+  tutorialUrl: string | null;
 }
 
 export interface LinkReplyInput {
@@ -40,12 +41,13 @@ const META: Record<SingleTopic, { key: ButtonKey; icon: string; label: string }>
   whitepaper: { key: 'whitepaper', icon: '📄', label: 'Whitepaper' },
   tokenomics: { key: 'tokenomics', icon: '🥧', label: 'Tokenomics' },
   security: { key: 'security', icon: '🛡', label: 'Security / audit' },
+  tutorial: { key: 'tutorial', icon: '🎓', label: 'Video tutorials' },
   community: { key: 'community', icon: '👥', label: 'Community' },
   chart: { key: 'chart', icon: '📈', label: 'Chart' },
   buy: { key: 'buy', icon: '🟢', label: 'Buy' },
 };
 
-const ALL_ORDER: SingleTopic[] = ['website', 'twitter', 'community', 'chart', 'tokenomics', 'whitepaper', 'security', 'buy'];
+const ALL_ORDER: SingleTopic[] = ['tutorial', 'website', 'twitter', 'community', 'chart', 'tokenomics', 'whitepaper', 'security', 'buy'];
 
 const HEADER = '🔗 <b>Tap a button to open</b> 👇';
 
@@ -57,6 +59,7 @@ function rawUrl(topic: SingleTopic, i: LinkReplyInput): string | null {
     case 'whitepaper': return t.whitepaperUrl;
     case 'tokenomics': return t.tokenomicsUrl;
     case 'security': return t.securityUrl;
+    case 'tutorial': return t.tutorialUrl;
     case 'community': return t.communityUrl;
     case 'chart': return t.chartUrl ?? i.marketChartUrl;
     // Same rule as the announcement button: the buy link is only ever shown when trading is live.

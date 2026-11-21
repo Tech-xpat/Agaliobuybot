@@ -1,6 +1,6 @@
 import { stripInvisible } from '../utils/sanitizers';
 
-export type LinkTopic = 'website' | 'twitter' | 'whitepaper' | 'tokenomics' | 'security' | 'community' | 'chart' | 'buy' | 'all';
+export type LinkTopic = 'website' | 'twitter' | 'whitepaper' | 'tokenomics' | 'security' | 'tutorial' | 'community' | 'chart' | 'buy' | 'all';
 
 /** Words that name a topic. "x" and "buy" are handled separately because they are too common on their own. */
 const TOPIC_WORDS: Record<string, LinkTopic> = {
@@ -16,6 +16,12 @@ const TOPIC_WORDS: Record<string, LinkTopic> = {
   audit: 'security',
   audits: 'security',
   security: 'security',
+  tutorial: 'tutorial',
+  tutorials: 'tutorial',
+  video: 'tutorial',
+  videos: 'tutorial',
+  guide: 'tutorial',
+  guides: 'tutorial',
   community: 'community',
   chart: 'chart',
   charts: 'chart',

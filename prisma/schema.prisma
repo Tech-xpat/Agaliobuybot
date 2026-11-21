@@ -28,6 +28,7 @@ model Token {
   whitepaperUrl String?
   tokenomicsUrl String?
   securityUrl   String?
+  tutorialUrl   String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

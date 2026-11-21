@@ -72,7 +72,7 @@ export function registerAdminCommands(bot: Bot, deps: BotDeps): void {
     'setlink',
     guarded('setlink', async (ctx, args, actor) => {
       const [name, ...rest] = args.split(/\s+/).filter(Boolean);
-      if (!name || rest.length === 0) return void (await reply(ctx, 'Usage: <code>/setlink twitter|whitepaper|tokenomics|security https://…|clear</code>'));
+      if (!name || rest.length === 0) return void (await reply(ctx, 'Usage: <code>/setlink twitter|whitepaper|tokenomics|security|tutorial https://…|clear</code>'));
       const res = await admin.setLink(actor, name, rest.join(' '));
       await reply(ctx, res.value ? `✅ ${escapeHtml(name)} link set.` : `✅ ${escapeHtml(name)} link cleared.`);
     }),
