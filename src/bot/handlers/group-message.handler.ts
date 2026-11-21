@@ -5,6 +5,7 @@ import { detectLinkRequest, type LinkTopic } from '../../detection/link-keyword-
 import { processMessage } from '../../detection/message-processor';
 import { errMessage, telegramRetryAfter } from '../../utils/errors';
 import { startsWithCommand } from '../filters';
+import { toInlineKeyboard } from '../keyboards/announcement.keyboard';
 import type { BotDeps } from '../context';
 
 export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
@@ -133,7 +134,7 @@ async function answerLinkRequest(ctx: Context, deps: BotDeps, messageId: number,
       }
     }
 
-    const html = buildLinkReply({
+    const reply = buildLinkReply({
       topics,
       token: {
         launchStatus: token.launchStatus as Parameters<typeof buildLinkReply>[0]['token']['launchStatus'],
@@ -150,10 +151,12 @@ async function answerLinkRequest(ctx: Context, deps: BotDeps, messageId: number,
       contractChecksum: contract?.checksum ?? null,
       marketChartUrl,
     });
-    if (!html) return;
+    if (!reply) return;
 
-    await ctx.reply(html, {
+    await ctx.reply(reply.html, {
       parse_mode: 'HTML',
+      // Links are tappable URL buttons, same style as the announcement buttons.
+      ...(reply.rows.length > 0 ? { reply_markup: toInlineKeyboard(reply.rows) } : {}),
       link_preview_options: { is_disabled: true },
       reply_parameters: { message_id: messageId, allow_sending_without_reply: true },
     });
