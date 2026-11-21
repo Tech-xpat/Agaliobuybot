@@ -39,8 +39,11 @@ export function formatPercent(n: number | null | undefined): string {
   return `${n > 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
-export function formatDate(d: Date | null | undefined): string {
-  if (!d || Number.isNaN(d.getTime())) return UNAVAILABLE;
+export function formatDate(input: Date | string | number | null | undefined): string {
+  if (input === null || input === undefined || input === '') return UNAVAILABLE;
+  // Accept ISO strings / timestamps too: values that went through a JSON cache are no longer Dates.
+  const d = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(d.getTime())) return UNAVAILABLE;
   return `${d.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
 }
 
