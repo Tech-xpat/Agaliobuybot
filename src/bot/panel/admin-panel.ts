@@ -8,7 +8,7 @@ import {
 } from '../../config/constants';
 import { TEMPLATE_KEYS } from '../../announcements/announcement.templates';
 import { ContractConfirmationRequired, ContractNotDeployed } from '../../admin/admin.service';
-import { AppError, isTelegramMessageGone, toUserMessage } from '../../utils/errors';
+import { AppError, errMessage, isTelegramMessageGone, toUserMessage } from '../../utils/errors';
 import { redactUrl } from '../../utils/formatters';
 import { escapeHtml, truncate } from '../../utils/sanitizers';
 import { isPrivateChat } from '../filters';
@@ -241,7 +241,9 @@ export function createAdminPanel(deps: BotDeps): AdminPanel {
       }
     } catch (err) {
       // Keep the prompt open so the admin can just type a corrected value.
-      if (!(err instanceof AppError && err.userSafe)) deps.log.error({ err }, 'Admin panel input failed');
+      if (!(err instanceof AppError && err.userSafe)) {
+        deps.log.error({ err, kind: state.kind }, `Admin panel input failed [${state.kind}]: ${errMessage(err).slice(0, 300)}`);
+      }
       await ctx.reply(`${errorText(err)}\n\nTry again, or cancel.`, { parse_mode: 'HTML', reply_markup: cancelButton() });
       return true;
     }
@@ -398,7 +400,10 @@ export function createAdminPanel(deps: BotDeps): AdminPanel {
           default: break;
         }
       } catch (err) {
-        if (!(err instanceof AppError && err.userSafe)) deps.log.error({ err }, 'Admin panel action failed');
+        if (!(err instanceof AppError && err.userSafe)) {
+          // The button and the reason go in the message itself so they show in Railway's log list.
+          deps.log.error({ err, action, arg }, `Admin panel action failed [a:${action}${arg ? `:${arg}` : ''}]: ${errMessage(err).slice(0, 300)}`);
+        }
         toast = toUserMessage(err).slice(0, 190);
       }
       await ctx.answerCallbackQuery(toast ? { text: toast, show_alert: toast.length > 40 } : undefined).catch((err) => {
