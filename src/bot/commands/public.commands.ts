@@ -3,12 +3,17 @@ import { buildCopyContractHtml } from '../../announcements/announcement.builder'
 import { helpText, startText } from '../messages/texts';
 import { isPrivateChat, userIdOf } from '../filters';
 import type { BotDeps } from '../context';
+import type { AdminPanel } from '../panel/admin-panel';
 
-export function registerPublicCommands(bot: Bot, deps: BotDeps): void {
+export function registerPublicCommands(bot: Bot, deps: BotDeps, panel: AdminPanel): void {
   const quiet = (ctx: { chat?: { id: number } }, name: string, seconds: number) =>
     deps.cache.setNx(`cmd:${ctx.chat?.id ?? 0}:${name}`, seconds);
 
   bot.command('start', async (ctx) => {
+    if (isPrivateChat(ctx) && (await deps.guard.isAdmin(userIdOf(ctx)))) {
+      await panel.open(ctx);
+      return;
+    }
     if (!isPrivateChat(ctx) && !(await quiet(ctx, 'start', 60))) return;
     await ctx.reply(startText(), { parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
   });

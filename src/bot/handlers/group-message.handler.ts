@@ -1,4 +1,5 @@
-import { GrammyError, HttpError, type Bot } from 'grammy';
+import { GrammyError, HttpError, type Bot, type Context } from 'grammy';
+import { isInfoRequest } from '../../detection/keyword-detector';
 import { processMessage } from '../../detection/message-processor';
 import { errMessage, telegramRetryAfter } from '../../utils/errors';
 import { startsWithCommand } from '../filters';
@@ -13,6 +14,12 @@ export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
     const text = msg.text ?? msg.caption ?? '';
     // Anonymous group admins appear as a bot-flagged sender with sender_chat set: allow those.
     const fromBot = ctx.from?.is_bot === true && !msg.sender_chat;
+
+    // Plain "ca" / "wen ca" / "contract address" requests get the token card (no slash command needed).
+    if (isInfoRequest(text)) {
+      await answerInfoRequest(ctx, deps, msg.message_id);
+      return;
+    }
 
     const decision = await processMessage(
       {
@@ -63,4 +70,27 @@ export function registerGroupMessageHandler(bot: Bot, deps: BotDeps): void {
       }
     }
   });
+}
+
+async function answerInfoRequest(ctx: Context, deps: BotDeps, messageId: number): Promise<void> {
+  const chat = ctx.chat!;
+  if (String(chat.id) !== deps.env.TELEGRAM_GROUP_ID) return;
+  if (ctx.from?.is_bot === true && !ctx.msg?.sender_chat) return;
+  const cfg = await deps.repos.config.get();
+  if (!cfg.announcementEnabled || cfg.paused) return;
+  const official = await deps.repos.tokens.getOfficial();
+  if (!official?.contract) return;
+
+  // Anti-spam: once per message, once per user per minute, and once per chat per 30 seconds.
+  const userId = ctx.from?.id ?? 0;
+  if (!(await deps.cache.setNx(`kw:msg:${chat.id}:${messageId}`, 86_400))) return;
+  if (!(await deps.cache.setNx(`kw:user:${chat.id}:${userId}`, 60))) return;
+  if (!(await deps.cache.setNx(`kw:chat:${chat.id}`, 30))) return;
+
+  try {
+    await deps.announcements.publish(ctx.api, { chatId: chat.id, chatIdBig: BigInt(chat.id), replyTo: messageId, kind: 'AUTO' });
+  } catch (err) {
+    deps.log.error({ err: errMessage(err) }, 'Failed to answer a contract request');
+    await deps.repos.audit.event('error', 'info-request.failed', errMessage(err));
+  }
 }

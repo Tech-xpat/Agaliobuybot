@@ -19,6 +19,18 @@ export interface AdminServiceDeps {
   onContractChanged?: (address: string) => Promise<void>;
 }
 
+export class ContractConfirmationRequired extends ValidationError {
+  constructor(public readonly current: string) {
+    super(`An official contract is already set (${current}).\nChanging it affects what the bot announces. Re-run with the word "confirm" at the end to proceed.`);
+  }
+}
+
+export class ContractNotDeployed extends ValidationError {
+  constructor() {
+    super('No contract code exists at that address on BSC (not deployed yet, or wrong address).\nAdd the word "force" at the end to set it anyway.');
+  }
+}
+
 export interface SetContractResult {
   checksum: string;
   replaced: boolean;
@@ -49,9 +61,7 @@ export class AdminService {
     const current = await this.d.repos.tokens.getOfficialContract(token.id);
     const replaced = !!current && current.address !== lower;
     if (replaced && !opts.confirm) {
-      throw new ValidationError(
-        `An official contract is already set (${current!.checksum}).\nChanging it affects what the bot announces. Re-run with the word "confirm" at the end to proceed.`,
-      );
+      throw new ContractConfirmationRequired(current!.checksum);
     }
 
     let hasCode: boolean;
@@ -61,7 +71,7 @@ export class AdminService {
       throw new ValidationError('Could not verify the contract on BSC right now (RPC problem). Try again shortly.');
     }
     if (!hasCode && !opts.force) {
-      throw new ValidationError('No contract code exists at that address on BSC (not deployed yet, or wrong address).\nAdd the word "force" at the end to set it anyway.');
+      throw new ContractNotDeployed();
     }
 
     await this.d.repos.tokens.setOfficialContract(token.id, { lower, checksum }, actorId);

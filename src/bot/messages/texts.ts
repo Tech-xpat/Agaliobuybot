@@ -8,7 +8,7 @@ export function startText(): string {
     '<b>AGALIO BUYBOT</b>',
     'I post the official AGALIO token information when the official contract address is shared in AGALIO NETWORK.',
     '',
-    'Commands: /token, /contract, /help',
+    'Just type <b>CA</b> in the group (or here) and I will post the contract and token details. No commands needed.',
     '',
     SAFETY_FOOTER,
   ].join('\n');
@@ -17,6 +17,7 @@ export function startText(): string {
 export function helpText(isAdmin: boolean): string {
   const lines = [
     '<b>Commands</b>',
+    'Type <b>CA</b> (or "wen ca", "contract address") to get the token card and contract. Commands also work:',
     '/token – show the AGALIO token card',
     '/contract – official contract address (tap to copy)',
     '/help – this message',
@@ -24,7 +25,10 @@ export function helpText(isAdmin: boolean): string {
   if (isAdmin) {
     lines.push(
       '',
-      '<b>Admin (private chat only)</b>',
+      '<b>Admin</b>',
+      'Send /start in a private chat to open the <b>button-based admin panel</b>. Everything below is an optional shortcut.',
+      '',
+      '<b>Shortcut commands (private chat only)</b>',
       '/status – health and configuration',
       '/announcement – preview the announcement here',
       '/test – post a TEST announcement in the group',

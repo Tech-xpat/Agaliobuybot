@@ -175,9 +175,16 @@ Structured JSON (pino) on stdout, rotated by Docker (10 MB × 5). Secrets (bot t
 
 ---
 
-## 6. Admin commands (private chat with the bot only)
+## 6. Using the bot
 
-Admin commands are **ignored in the group** (silent for non-admins; admins are told to use private chat) and rejected for anyone not on the admin list. Every change is validated and written to `AuditLog`.
+### Everyone: just type `CA`
+No slash commands needed. In AGALIO NETWORK (or in a private chat with the bot) anyone can type a short request such as `ca`, `CA?`, `wen ca`, `what's the ca`, `drop ca pls`, `contract address` and the bot replies with the token card: contract, on-chain facts, market data, and buttons. Only messages that are *entirely* such a request trigger it, so normal chat containing "ca" is ignored. It is rate limited (once per user per minute, once per chat per 30 s) and respects pause. Posting the official contract address itself still triggers the announcement too. Add or change trigger words in `src/detection/keyword-detector.ts`.
+
+### Admins: the button panel
+Open a private chat with the bot and send `/start` (or any message). You get a panel of buttons: **Status, Preview, Contract, Launch status, Links, Buttons, Description, Logo, Template, Admins, Test post, Refresh data, Pause/Resume**. You only type when a value is needed (a URL, the contract address, the description): the bot asks, you reply, it validates and saves, and every change is audited. Risky actions ask for a confirming tap (replacing the contract, a contract with no on-chain code, posting a test to the group). Every button press re-checks that you are an admin and in a private chat, so pressing panel buttons from the group, or as a non-admin, does nothing.
+
+### Optional slash-command shortcuts (admins, private chat)
+The same actions exist as commands for power users:
 
 | Command | Purpose |
 |---|---|

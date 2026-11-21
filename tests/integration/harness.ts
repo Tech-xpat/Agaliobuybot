@@ -46,6 +46,12 @@ export interface Harness {
   groupMessage(text: string, id?: number, userId?: number): Promise<void>;
   privateCommand(cmd: string, args?: string, userId?: number, extra?: Record<string, unknown>): Promise<void>;
   callback(data: string, userId?: number): Promise<void>;
+  privateText(text: string, userId?: number): Promise<void>;
+  privatePhoto(userId?: number): Promise<void>;
+  /** a button press inside a private chat (admin panel) */
+  panelPress(data: string, userId?: number): Promise<void>;
+  /** a button press in the group chat */
+  last(method: string): ApiCall | undefined;
   close(): Promise<void>;
 }
 
@@ -154,6 +160,11 @@ export async function createHarness(opts: { seedContract?: boolean; env?: Env; c
     },
     callback: (data, userId = MEMBER_ID) =>
       send({ callback_query: { id: `cq${queryCounter++}`, from: user(userId), chat_instance: 'ci', data, message: { message_id: 6001, date: 1, chat: { id: GROUP_ID, type: 'supergroup' } } } }),
+    privateText: (text, userId = ADMIN_ID) => send({ message: { message_id: 2, date: 1, chat: { id: userId, type: 'private' }, from: user(userId), text } }),
+    privatePhoto: (userId = ADMIN_ID) => send({ message: { message_id: 3, date: 1, chat: { id: userId, type: 'private' }, from: user(userId), photo: [{ file_id: 'small', file_unique_id: 'a', width: 1, height: 1 }, { file_id: 'PHOTO_BIG', file_unique_id: 'b', width: 9, height: 9 }] } }),
+    panelPress: (data, userId = ADMIN_ID) =>
+      send({ callback_query: { id: `cq${queryCounter++}`, from: user(userId), chat_instance: 'ci', data, message: { message_id: 7001, date: 1, chat: { id: userId, type: 'private' } } } }),
+    last: (method) => [...calls].reverse().find((c) => c.method === method),
     close: async () => {
       await db.$disconnect();
     },
