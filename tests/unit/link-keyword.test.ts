@@ -64,7 +64,7 @@ describe('link keyword detection', () => {
   });
 });
 
-describe('link reply', () => {
+describe('link reply (tappable buttons)', () => {
   const base: LinkReplyInput = {
     topics: ['website'],
     token: {
@@ -82,54 +82,72 @@ describe('link reply', () => {
     contractChecksum: '0x1111111111111111111111111111111111111111',
     marketChartUrl: null,
   };
+  const urls = (r: ReturnType<typeof buildLinkReply>) => r?.rows.flat().map((b) => (b.kind === 'url' ? b.url : ''));
 
-  it('returns the requested link', () => {
-    expect(buildLinkReply(base)).toBe('🌐 <b>Website:</b> https://agalio.example/');
+  it('returns the requested link as a tappable URL button', () => {
+    const r = buildLinkReply(base)!;
+    expect(r.rows).toEqual([[{ kind: 'url', key: 'website', text: '🌐 Website', url: 'https://agalio.example/' }]]);
+    expect(r.html).toContain('Tap a button');
+    expect(r.html).not.toContain('agalio.example'); // the link lives in the button, not the text
   });
 
-  it('returns several links in the order asked', () => {
-    const r = buildLinkReply({ ...base, topics: ['twitter', 'website'] })!;
-    expect(r.split('\n')).toEqual(['𝕏 <b>Twitter / X:</b> https://x.com/agalio', '🌐 <b>Website:</b> https://agalio.example/']);
+  it('puts several links in the order asked, two buttons per row', () => {
+    const r = buildLinkReply({ ...base, topics: ['twitter', 'website', 'tokenomics'] })!;
+    expect(urls(r)).toEqual(['https://x.com/agalio', 'https://agalio.example/', 'https://agalio.example/tokenomics']);
+    expect(r.rows.map((row) => row.length)).toEqual([2, 1]);
   });
 
-  it('says so honestly when a requested link is not set', () => {
-    expect(buildLinkReply({ ...base, topics: ['whitepaper'] })).toBe('📄 <b>Whitepaper:</b> not available yet.');
+  it('uses the admin custom button label when one is set', () => {
+    const r = buildLinkReply({ ...base, buttons: [{ key: 'website', enabled: true, label: 'Visit our site' }] })!;
+    expect(r.rows[0]![0]!.text).toBe('Visit our site');
+  });
+
+  it('says so honestly (no button) when a requested link is not set', () => {
+    const r = buildLinkReply({ ...base, topics: ['whitepaper'] })!;
+    expect(r.rows).toEqual([]);
+    expect(r.html).toBe('📄 <b>Whitepaper:</b> not available yet.');
+  });
+
+  it('mixes buttons for links that exist with a note for the one that does not', () => {
+    const r = buildLinkReply({ ...base, topics: ['website', 'whitepaper'] })!;
+    expect(urls(r)).toEqual(['https://agalio.example/']);
+    expect(r.html).toContain('Whitepaper:</b> not available yet');
   });
 
   it('skips topics the admin switched off', () => {
     expect(buildLinkReply({ ...base, buttons: [{ key: 'website', enabled: false }] })).toBeNull();
   });
 
-  it('never shows the buy link unless trading is live', () => {
+  it('never gives the buy link unless trading is live', () => {
     const notLive = buildLinkReply({ ...base, topics: ['buy'] })!;
-    expect(notLive).toContain('not been announced as live');
-    expect(notLive).not.toContain('pancakeswap');
-    const live = buildLinkReply({ ...base, topics: ['buy'], token: { ...base.token, launchStatus: 'TRADING_LIVE' } })!;
-    expect(live).toContain('outputCurrency=0x1111111111111111111111111111111111111111');
+    expect(notLive.rows).toEqual([]);
+    expect(notLive.html).toContain('not been announced as live');
+    const live = buildLinkReply({ ...base, topics: ['buy'], token: { ...base.token, launchStatus: 'TRADING_LIVE' } });
+    expect(urls(live)![0]).toContain('outputCurrency=0x1111111111111111111111111111111111111111');
   });
 
   it('falls back to the market chart link', () => {
     const r = buildLinkReply({ ...base, topics: ['chart'], marketChartUrl: 'https://dexscreener.com/bsc/0xpair' });
-    expect(r).toBe('📈 <b>Chart:</b> https://dexscreener.com/bsc/0xpair');
+    expect(urls(r)).toEqual(['https://dexscreener.com/bsc/0xpair']);
   });
 
-  it('"all" lists only links that exist and says nothing when none exist', () => {
+  it('"all" gives a button for every link that exists and says nothing when none exist', () => {
     const r = buildLinkReply({ ...base, topics: ['all'] })!;
-    expect(r.split('\n')).toHaveLength(3); // website, twitter, tokenomics
-    expect(r).not.toContain('not available');
+    expect(urls(r)).toEqual(['https://agalio.example/', 'https://x.com/agalio', 'https://agalio.example/tokenomics']);
+    expect(r.html).not.toContain('not available');
     const empty = buildLinkReply({ ...base, topics: ['all'], token: { ...base.token, websiteUrl: null, twitterUrl: null, tokenomicsUrl: null } });
     expect(empty).toBeNull();
   });
 
-  it('drops links that fail URL validation and escapes HTML', () => {
-    expect(buildLinkReply({ ...base, token: { ...base.token, websiteUrl: 'http://insecure.example' } })).toBe('🌐 <b>Website:</b> not available yet.');
-    const r = buildLinkReply({ ...base, token: { ...base.token, websiteUrl: 'https://agalio.example/?a=1&b=<2>' } })!;
-    expect(r).not.toContain('<2>');
-    expect(r).toContain('&amp;b=');
+  it('drops links that fail URL validation', () => {
+    const r = buildLinkReply({ ...base, token: { ...base.token, websiteUrl: 'http://insecure.example' } })!;
+    expect(r.rows).toEqual([]);
+    expect(r.html).toBe('🌐 <b>Website:</b> not available yet.');
   });
 
   it('skips a {contract} template when no contract is set', () => {
-    const r = buildLinkReply({ ...base, topics: ['buy'], token: { ...base.token, launchStatus: 'TRADING_LIVE' }, contractChecksum: null });
-    expect(r).toBe('🟢 <b>Buy:</b> not available yet.');
+    const r = buildLinkReply({ ...base, topics: ['buy'], token: { ...base.token, launchStatus: 'TRADING_LIVE' }, contractChecksum: null })!;
+    expect(r.rows).toEqual([]);
+    expect(r.html).toBe('🟢 <b>Buy:</b> not available yet.');
   });
 });
