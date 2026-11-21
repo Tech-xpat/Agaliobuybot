@@ -100,6 +100,14 @@ describe('MarketService', () => {
     expect(spy).toHaveBeenCalledTimes(2);
   });
 
+  it('returns pairCreatedAt as a Date on a cache hit (cache stores JSON)', async () => {
+    const svc = mk([{ name: 'A', getTokenMarketData: async () => ({ ...marketData, pairCreatedAt: new Date('2026-01-01T00:00:00Z') }) }]);
+    await svc.get(OFFICIAL);
+    const cached = await svc.get(OFFICIAL);
+    expect(cached.data?.pairCreatedAt).toBeInstanceOf(Date);
+    expect(cached.data?.pairCreatedAt?.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+  });
+
   it('serves stale data (flagged) when the provider later fails', async () => {
     let fail = false;
     const svc = mk([{ name: 'A', getTokenMarketData: async () => { if (fail) throw new ExternalServiceError('x', 'A'); return marketData; } }]);
