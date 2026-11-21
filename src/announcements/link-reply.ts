@@ -1,8 +1,7 @@
-import type { ButtonKey, LaunchStatusValue } from '../config/constants';
+import { DEFAULT_BUTTON_LABELS, type ButtonKey, type LaunchStatusValue } from '../config/constants';
 import type { LinkTopic } from '../detection/link-keyword-detector';
 import { renderUrlTemplate, safeUrl } from '../services/url.service';
-import type { ButtonSetting } from '../types';
-import { escapeHtml } from '../utils/sanitizers';
+import type { ButtonSetting, ButtonSpec } from '../types';
 
 type SingleTopic = Exclude<LinkTopic, 'all'>;
 
@@ -28,6 +27,13 @@ export interface LinkReplyInput {
   marketChartUrl: string | null;
 }
 
+export interface LinkReply {
+  /** Telegram HTML text shown above the buttons. */
+  html: string;
+  /** Tappable URL buttons, two per row. May be empty when there is only a note to show. */
+  rows: ButtonSpec[][];
+}
+
 const META: Record<SingleTopic, { key: ButtonKey; icon: string; label: string }> = {
   website: { key: 'website', icon: '🌐', label: 'Website' },
   twitter: { key: 'twitter', icon: '𝕏', label: 'Twitter / X' },
@@ -40,6 +46,8 @@ const META: Record<SingleTopic, { key: ButtonKey; icon: string; label: string }>
 };
 
 const ALL_ORDER: SingleTopic[] = ['website', 'twitter', 'community', 'chart', 'tokenomics', 'whitepaper', 'security', 'buy'];
+
+const HEADER = '🔗 <b>Tap a button to open</b> 👇';
 
 function rawUrl(topic: SingleTopic, i: LinkReplyInput): string | null {
   const t = i.token;
@@ -64,29 +72,40 @@ function resolveUrl(topic: SingleTopic, i: LinkReplyInput): string | null {
 }
 
 /**
- * Builds the group reply (Telegram HTML) for a link request, or null when there is nothing to say.
- * Respects the admin's button on/off switches and never shows a link that fails URL validation.
+ * Builds the group reply for a link request: a short text plus tappable URL buttons, or null when
+ * there is nothing to say. Button labels match the announcement buttons (including any custom label
+ * an admin set). Respects the admin's button on/off switches and never shows a link that fails URL validation.
  */
-export function buildLinkReply(input: LinkReplyInput): string | null {
-  const enabled = (key: ButtonKey) => input.buttons.find((b) => b.key === key)?.enabled ?? true;
-  const asked = input.topics.includes('all');
-  const topics: SingleTopic[] = asked ? ALL_ORDER : (input.topics as SingleTopic[]);
+export function buildLinkReply(input: LinkReplyInput): LinkReply | null {
+  const setting = (key: ButtonKey) => input.buttons.find((b) => b.key === key);
+  const enabled = (key: ButtonKey) => setting(key)?.enabled ?? true;
+  const label = (key: ButtonKey) => setting(key)?.label?.trim() || DEFAULT_BUTTON_LABELS[key];
 
-  const lines: string[] = [];
+  const askedForAll = input.topics.includes('all');
+  const topics: SingleTopic[] = askedForAll ? ALL_ORDER : (input.topics as SingleTopic[]);
+
+  const buttons: ButtonSpec[] = [];
+  const notes: string[] = [];
   for (const topic of topics) {
-    const { key, icon, label } = META[topic];
+    const { key, icon, label: name } = META[topic];
     if (!enabled(key)) continue;
     const url = resolveUrl(topic, input);
     if (url) {
-      lines.push(`${icon} <b>${label}:</b> ${escapeHtml(url)}`);
-    } else if (!asked) {
+      buttons.push({ kind: 'url', key, text: label(key), url });
+    } else if (!askedForAll) {
       // Asked for this one specifically: say honestly why there is no link.
-      lines.push(
+      notes.push(
         topic === 'buy' && input.token.launchStatus !== 'TRADING_LIVE'
-          ? `${icon} <b>${label}:</b> trading has not been announced as live yet. Please wait for an official announcement.`
-          : `${icon} <b>${label}:</b> not available yet.`,
+          ? `${icon} <b>${name}:</b> trading has not been announced as live yet. Please wait for an official announcement.`
+          : `${icon} <b>${name}:</b> not available yet.`,
       );
     }
   }
-  return lines.length > 0 ? lines.join('\n') : null;
+
+  if (buttons.length === 0 && notes.length === 0) return null;
+
+  const rows: ButtonSpec[][] = [];
+  for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
+  const html = [buttons.length > 0 ? HEADER : null, ...notes].filter((p): p is string => p !== null).join('\n\n');
+  return { html, rows };
 }
