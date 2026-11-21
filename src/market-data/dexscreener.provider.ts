@@ -14,6 +14,7 @@ const pairSchema = z.object({
   baseToken: z.object({ address: z.string() }).passthrough(),
   quoteToken: z.object({ address: z.string() }).passthrough().optional(),
   priceUsd: num,
+  priceNative: num,
   volume: z.object({ h24: num }).passthrough().optional(),
   priceChange: z.object({ h24: num }).passthrough().optional(),
   liquidity: z.object({ usd: num }).passthrough().optional(),
@@ -81,6 +82,8 @@ export class DexScreenerProvider implements MarketDataProvider {
       chartUrl: best.url && best.url.startsWith('https://dexscreener.com/') ? best.url : null,
       holderCount: null, // not provided by DexScreener
       fetchedAt: Date.now(),
+      quoteTokenAddress: best.quoteToken?.address.toLowerCase() ?? null,
+      quoteUsd: best.priceUsd && best.priceNative && best.priceNative > 0 ? best.priceUsd / best.priceNative : null,
     };
   }
 

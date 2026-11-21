@@ -8,7 +8,9 @@ export function startText(): string {
     '<b>AGALIO BUYBOT</b>',
     'I post the official AGALIO token information when the official contract address is shared in AGALIO NETWORK.',
     '',
-    'Just type <b>CA</b> in the group (or here) and I will post the contract and token details. No commands needed.',
+    'Just type <b>CA</b> in the group (or here) and I will reply with the contract address. Ask for anything else on its own: <b>price</b>, <b>mc</b>, <b>liquidity</b>, <b>volume</b>, <b>holders</b>, <b>supply</b>, <b>website</b>, <b>twitter</b>… No commands needed.',
+    '',
+    'I also post a card in the group whenever someone buys AGALIO.',
     '',
     SAFETY_FOOTER,
   ].join('\n');
@@ -17,8 +19,10 @@ export function startText(): string {
 export function helpText(isAdmin: boolean): string {
   const lines = [
     '<b>Commands</b>',
-    'Type <b>CA</b> (or "wen ca", "contract address") to get the token card and contract. Commands also work:',
-    '/token – show the AGALIO token card',
+    'Type <b>CA</b> (or "wen ca", "contract address") to get the contract address. Ask for one thing at a time and I answer just that:',
+    '<b>price</b> · <b>mc</b> · <b>liquidity</b> · <b>volume</b> · <b>holders</b> · <b>supply</b> · <b>website</b> · <b>twitter</b> · <b>chart</b> · <b>tokenomics</b>…',
+    'Commands also work:',
+    '/token – show the full AGALIO token card',
     '/contract – official contract address (tap to copy)',
     '/help – this message',
   ];

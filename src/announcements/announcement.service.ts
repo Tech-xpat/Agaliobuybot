@@ -110,8 +110,8 @@ export class AnnouncementService {
     return { messageId };
   }
 
-  /** Sends a built announcement to any chat (used for previews in private chat). */
-  async send(api: Api, chatId: number | string, built: BuiltAnnouncement, replyTo?: number): Promise<number> {
+  /** Sends a built card (logo + text + buttons) to any chat: announcements, previews, buy alerts. */
+  async send(api: Api, chatId: number | string, built: Pick<BuiltAnnouncement, 'html' | 'rows'>, replyTo?: number): Promise<number> {
     const keyboard = toInlineKeyboard(built.rows);
     const reply_parameters = replyTo ? { message_id: replyTo, allow_sending_without_reply: true } : undefined;
     const logo = await this.resolveLogo();

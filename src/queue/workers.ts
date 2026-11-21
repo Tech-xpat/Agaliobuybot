@@ -8,11 +8,13 @@ import { JOB, QUEUE_NAME, type AnnounceRetryData, type JobHandlers } from './job
 export interface BackgroundJobsOptions {
   redisUrl: string;
   refreshSeconds: number;
+  /** Interval of the buy-alert scan. Leave undefined to disable it. */
+  buyScanSeconds?: number;
   prefix?: string;
 }
 
 /**
- * BullMQ-backed background work: market refresh, RPC health, pruning, announcement retries.
+ * BullMQ-backed background work: market refresh, buy-alert scans, RPC health, pruning, announcement retries.
  * Schedulers and delayed jobs live in Redis, so they survive restarts. If Redis cannot be
  * reached at startup the bot falls back to in-process timers (retries are then best-effort).
  */
@@ -69,6 +71,12 @@ export class BackgroundJobs {
     await this.queue.upsertJobScheduler(JOB.MARKET_REFRESH, every(this.opts.refreshSeconds), { name: JOB.MARKET_REFRESH, opts });
     await this.queue.upsertJobScheduler(JOB.RPC_HEALTH, every(300), { name: JOB.RPC_HEALTH, opts });
     await this.queue.upsertJobScheduler(JOB.PRUNE, every(86_400), { name: JOB.PRUNE, opts });
+    if (this.opts.buyScanSeconds && this.handlers.scanBuys) {
+      await this.queue.upsertJobScheduler(JOB.BUY_SCAN, every(this.opts.buyScanSeconds), { name: JOB.BUY_SCAN, opts: { removeOnComplete: 5, removeOnFail: 20 } });
+    } else {
+      // Buy alerts switched off: drop a scheduler left over from an earlier run.
+      await this.queue.removeJobScheduler(JOB.BUY_SCAN).catch(() => undefined);
+    }
   }
 
   private async process(job: Job): Promise<void> {
@@ -79,6 +87,8 @@ export class BackgroundJobs {
         return this.safe('rpc-health', () => this.handlers.checkRpc());
       case JOB.PRUNE:
         return this.safe('prune', () => this.handlers.prune());
+      case JOB.BUY_SCAN:
+        return this.safe('buy-scan', async () => void (await this.handlers.scanBuys?.()));
       case JOB.ANNOUNCE_RETRY:
         // Throw on failure so BullMQ applies its retry/backoff policy.
         return this.handlers.retryAnnouncement(job.data as AnnounceRetryData);
@@ -104,6 +114,8 @@ export class BackgroundJobs {
     run('market-refresh', () => this.handlers.refreshMarket(), this.opts.refreshSeconds * 1000);
     run('rpc-health', () => this.handlers.checkRpc(), 300_000);
     run('prune', () => this.handlers.prune(), 86_400_000);
+    const scanBuys = this.handlers.scanBuys;
+    if (this.opts.buyScanSeconds && scanBuys) run('buy-scan', () => scanBuys(), this.opts.buyScanSeconds * 1000);
   }
 
   /** Schedules a retry of a failed announcement. Returns false if it could not be queued. */

@@ -59,3 +59,18 @@ export function redactUrl(raw: string | undefined | null): string {
     return 'invalid';
   }
 }
+
+/** Human-friendly token/coin amount from raw units: 1,234.56 for big values, 0.000123 for tiny ones. */
+export function formatAmount(raw: bigint, decimals: number): string {
+  try {
+    const [i = '0', f = ''] = formatUnits(raw, decimals).split('.');
+    if (i === '0') {
+      const frac = f.slice(0, 6).replace(/0+$/, '');
+      return frac ? `0.${frac}` : f ? '<0.000001' : '0';
+    }
+    const frac = f.slice(0, 2).replace(/0+$/, '');
+    return `${group(i)}${frac ? `.${frac}` : ''}`;
+  } catch {
+    return UNAVAILABLE;
+  }
+}
